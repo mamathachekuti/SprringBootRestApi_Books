@@ -1,0 +1,190 @@
+*********************************************************************************************************************************************************************************************
+Securing the Spring Boot API with OAuth 2.0
+*********************************************************************************************************************************************************************************************
+Now that you have defined your endpoints, it is time to secure your API using OAuth 2.0. 
+To do so, you are going to import another library provided by Spring that will facilitate the configuration of everything.
+ So, open the gradle.build file and add the following dependency to it:
+ 
+dependencies {
+  // ... other dependencies ...
+  compile('org.springframework.security.oauth.boot:spring-security-oauth2-autoconfigure:2.0.6.RELEASE')
+}
+
+Then, to secure your API, create a new class called SecurityConfig inside the BookController Class.
+annotated this class with @EnableResourceServer. 
+This annotation is a convenient feature for resource servers secured with OAuth 2.0 as it automatically enables a Spring Security filter that authenticates requests via an incoming OAuth 2.0 token.
+The only problem now is that the SecurityConfig class does not know how to verify your access token. That is, whenever your users send requests to your secured endpoints, they will include access tokens that are signed with a private key. 
+In order for this class to know if it can trust or not these access tokens, Spring will need the public key that pairs with this private key used to sign the token.
+ To get this public key, your backend API will need to issue a request to an endpoint known as the JWKS endpoint. 
+
+From the backend API point of view, this is everything you need to define endpoints and to secure them with OAuth 2.0. The next section will focus on creating and defining a client app (a SPA) to consume this API. Basically, this SPA will be responsible for three things:
+enabling users to authenticate;
+getting access tokens back from the authentication server (Auth0);
+enabling users to use this access tokens to issue requests to your new Spring Boot API.
+*********************************************************************************************************************************************************************************************
+
+
+*********************************************************************************************************************************************************************************************
+Describe how you can document this API for consumers of the API
+*********************************************************************************************************************************************************************************************
+
+Document APIs for consumer that we need to provide are as follow:
+
+Overview:
+Each Book has id, isbn,title, published date,author.
+Apis help to create, retrieve, retrieve by isbn.
+
+Book data model class corresponds to entity and collection Book.
+BookRepository is an interface that extends MongoRepository for CRUD methods and custom finder methods. It will be autowired in BookController.
+BookController is a RestController which has request mapping methods for RESTful requests such as:getAll(), getAllByIsbn(),addbook()
+Configuration for Spring Data MongoDB is in application.properties.
+build.gradle contains dependencies for Spring Boot REST and Spring Data MongoDB.
+
+Technology:
+	Java 11
+	Spring Boot 2.2.4 (with Spring Data MongoDB)
+	MongoDB
+	Gradle
+
+Methods	Urls	                         Actions
+POST	/books/	                         create new book into database.
+GET	    /books/	                         retrieve all books from database.
+GET	    /books/isbn?isbn={Text}	         retrieve a books by isbn text replacing with APi.
+*********************************************************************************************************************************************************************************************
+ 
+ 
+ 
+*********************************************************************************************************************************************************************************************
+ Describe any design pattern you have leveraged in your solution. 
+*********************************************************************************************************************************************************************************************
+ 
+ We have used following desgin Pattern as stated below:
+
+1.Autowired Singletons Pattern:
+Book controllers within a single application context and inject a bean of the same type into each.
+We create a BookRepository that manages our Book domain objects.
+ 
+2.Template Method Pattern
+
+For executing a query on a database, the same series of steps must be completed:
+Establish a connection
+Execute query
+Perform cleanup
+Close the connection
+These steps are an ideal scenario for the template method pattern.
+ 
+ 
+ 3. Factory Method Pattern
+ The factory method pattern entails a factory class with an abstract method for creating the desired object.
+ we want to create different objects based on a particular context.
+ As our appilcation need to be initalize bean when started to get autowired. 
+ To accomplish this, we can create a factory implementation for each desired object and return the desired object from the concrete factory method.
+ *********************************************************************************************************************************************************************************************
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Request and Response from BookApp Rest Api
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+1) Request to http://localhost:8080/books/
+
+> GET /books/ HTTP/1.1
+> Host: localhost:8080
+> Content-Type: application/json
+> Accept: */*
+
+Response to http://localhost:8080/books/
+< HTTP/1.1 200 
+< Content-Type: application/json;charset=UTF-8
+< Transfer-Encoding: chunked
+< Date: Wed, 29 Sep 2021 08:06:56 GMT
+ 
+ [
+  {
+    "id": "6152ed51038cb33eb0c3928d",
+    "isbn": "XYZ",
+    "title": "Sawant",
+    "author": "ravi@gmail.com",
+    "date_published": "2021-10-07T00:00:00.000+0000",
+    "rating": 10
+  },
+  {
+    "id": "6153549a038cb3381cb01776",
+    "isbn": "XYZ",
+    "title": "Sawant",
+    "author": "ravi@gmail.com",
+    "date_published": "2021-10-07T00:00:00.000+0000",
+    "rating": 10
+  },
+  {
+    "id": "61537131038cb35ff46835a7",
+    "isbn": "MNO",
+    "title": "Sawant",
+    "author": "ravi@gmail.com",
+    "date_published": "2021-10-07T00:00:00.000+0000",
+    "rating": 10
+  }
+]
+
+
+2)Request to http://localhost:8080/books/isbn/
+GET /books/isbn/ HTTP/1.1
+> Host: localhost:8080
+> User-Agent: insomnia/2021.5.3
+> Content-Type: multipart/form-data;
+> Accept: */*
+> Content-Length: 100
+
+
+| Content-Disposition: form-data; name="isbn"
+| XYZ
+
+< HTTP/1.1 200 
+< Content-Type: application/json;charset=UTF-8
+< Transfer-Encoding: chunked
+< Date: Wed, 29 Sep 2021 08:09:30 GMT
+
+
+[
+  {
+    "id": "6152ed51038cb33eb0c3928d",
+    "isbn": "XYZ",
+    "title": "Sawant",
+    "author": "ravi@gmail.com",
+    "date_published": "2021-10-07T00:00:00.000+0000",
+    "rating": 10
+  },
+  {
+    "id": "6153549a038cb3381cb01776",
+    "isbn": "XYZ",
+    "title": "Sawant",
+    "author": "ravi@gmail.com",
+    "date_published": "2021-10-07T00:00:00.000+0000",
+    "rating": 10
+  }
+]
+
+
+3)Request to http://localhost:8080/books/
+
+POST /books/ HTTP/1.1
+> Host: localhost:8080
+> User-Agent: insomnia/2021.5.3
+> Content-Type: application/json
+> Accept: */*
+> Content-Length: 132
+
+|   {
+|     "isbn": "MNO",
+|     "title": "Sawant",
+|     "author": "ravi@gmail.com",
+|     "date_published": "2021-10-07",
+| 		"rating": 10
+|   }
+
+
+< HTTP/1.1 200 
+< Content-Type: text/plain;charset=UTF-8
+< Content-Length: 18
+< Date: Tue, 28 Sep 2021 19:46:57 GMT
+
+Response Body
+SuccessFully Added
